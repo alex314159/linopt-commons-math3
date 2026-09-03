@@ -1,0 +1,8 @@
+/target/
+/.idea/
+*.iml
+.nrepl-port
+.lein-*
+.DS_Store
+/pom.xml
+/.clj-kondo/
