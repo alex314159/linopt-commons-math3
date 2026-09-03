@@ -48,13 +48,18 @@ output together is always safe, no separate flattening step needed.
 (def n (count universe))
 
 (def constraints
-  (vec (concat (lo/position-bounds n 0.0 40.0)               ; no name over 40%
+  (vec (concat (lo/position-bounds n nil 40.0)               ; no name over 40%
                (lo/sum-constraint n 100.0)                    ; fully invested
                (lo/group-constraint universe :country "BR" [0.0 60.0])))) ; BR <= 60%
 
 (lo/maximize-objective universe :yield constraints {:non-negative? true})
 ;; => [(40.0 20.0 40.0 0.0) 748.0]  (point, objective value)
 ```
+
+`position-bounds`' lower bound is `nil` here because `:non-negative? true` already
+forces every variable `>= 0` - passing `0.0` instead still works (the solver drops
+the now-redundant row before it reaches the simplex), but `nil` skips allocating
+it in the first place.
 
 Benchmark-relative bands (over/under-weight vs an index) anchor to a separate reference
 collection (the *true* index, before any investability screen) so a name that's in the

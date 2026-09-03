@@ -16,11 +16,16 @@
   (:require [linopt-commons-math3.solver :as solver]))
 
 (defn position-bounds
-  "Per-item `[min max]` bound on each of the `n` variables."
+  "Per-item `[min max]` bound on each of the `n` variables. `mn`/`mx` can be
+  `nil` to skip that side - e.g. pass `nil` for `mn` when the solver already
+  gets `:non-negative? true`, so a redundant `>= 0` row (and its `n`-long
+  coefficient array) is never allocated instead of being built and later
+  dropped by the solver."
   [n mn mx]
   (vec (mapcat (fn [i]
-                 [(solver/bv n i 1.0) :>= mn
-                  (solver/bv n i 1.0) :<= mx])
+                 (cond-> []
+                   mn (into [(solver/bv n i 1.0) :>= mn])
+                   mx (into [(solver/bv n i 1.0) :<= mx])))
                (range n))))
 
 (defn sum-constraint

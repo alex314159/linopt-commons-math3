@@ -40,6 +40,33 @@
                          (seq->double-array (butlast right))
                          (double (last right))))))
 
+(defn- nonneg-coeffs?
+  "True if every coefficient in `left` is >= 0. `left` is a `double-array` for
+  most per-variable constraints (`position-bounds` et al build them via `bv`);
+  `seq`-ing a double-array boxes every element just to iterate, which shows up
+  at scale, so that shape gets a primitive loop instead of `every?`."
+  [left]
+  (if (= (type left) double-array-type)
+    (let [^doubles a left]
+      (loop [i 0]
+        (or (= i (alength a))
+            (and (>= (aget a i) 0.0) (recur (inc i))))))
+    (every? #(>= (double %) 0.0) left)))
+
+(defn- redundant-non-negative-floor?
+  "True if `[left rel right]` is an always-true `>= r` floor (`r <= 0`, every
+  coefficient in `left` non-negative) once every variable is already
+  constrained `>= 0` - safe to drop instead of handing the solver an extra
+  artificial-variable row for a constraint that can never bind.
+  `position-bounds`/`group-constraint` emit exactly this shape whenever their
+  lower band is 0, the common case for portfolio weights - each such row
+  roughly doubles simplex iterations at scale, so this matters."
+  [[left relation right]]
+  (and (number? right)
+       (<= (double right) 0.0)
+       (#{:>= '>= :geq} relation)
+       (nonneg-coeffs? left)))
+
 (defn- maybe-stats?
   [stats? ^BaseOptimizer optimizer res]
   (if-not stats?
@@ -98,15 +125,16 @@
    (let [goal (if (= goal :minimize) GoalType/MINIMIZE GoalType/MAXIMIZE)
          rule (if (= rule :dantzig) PivotSelectionRule/DANTZIG PivotSelectionRule/BLAND)
          max-iter (MaxIter. max-iter)
-         non-negative? (NonNegativeConstraint. non-negative?)
+         non-negative-constraint (NonNegativeConstraint. non-negative?)
          target (LinearObjectiveFunction. (seq->double-array (butlast target))
                                           (double (last target)))
          constraints (->> constraints
                           (partition 3)
+                          (remove #(and non-negative? (redundant-non-negative-floor? %)))
                           ^Collection (map build-constraint)
                           (LinearConstraintSet.))
          ^BaseOptimizer solver (SimplexSolver. epsilon max-ulps cut-off)]
-     (->> [goal rule max-iter non-negative? target constraints]
+     (->> [goal rule max-iter non-negative-constraint target constraints]
           (into-array OptimizationData)
           (.optimize solver)
           (parse-result nil)

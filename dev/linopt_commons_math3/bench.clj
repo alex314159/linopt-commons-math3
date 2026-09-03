@@ -27,13 +27,13 @@
 (defn -main [& _]
   (let [n 1000
         universe (synthetic-universe n)
-        base-constraints (vec (concat (constraints/position-bounds n 0.0 5.0)
+        base-constraints (vec (concat (constraints/position-bounds n nil 5.0)
                                       (constraints/sum-constraint n 100.0)))]
     (println "universe size:" n)
     (report "solver/linear-optimization (position bounds + sum-of-weights only)"
             #(solver/linear-optimization (conj (mapv :value universe) 0.0) base-constraints
                                          {:goal :maximize :non-negative? true}))
-    (report "constraints/position-bounds" #(constraints/position-bounds n 0.0 5.0))
+    (report "constraints/position-bounds" #(constraints/position-bounds n nil 5.0))
     (report "constraints/group-constraint (by country)"
             #(doseq [c (distinct (map :country universe))]
                (constraints/group-constraint universe :country c [0.0 10.0])))
