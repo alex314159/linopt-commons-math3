@@ -1,4 +1,4 @@
-(defproject net.clojars.alex314159/linopt-commons-math3 "0.1.0-SNAPSHOT"
+(defproject net.clojars.alex314159/linopt-commons-math3 "0.1.0"
   :description "Generic linear-programming portfolio optimiser: an item universe + composable constraint builders over Apache Commons Math 3's simplex solver."
   :url "https://github.com/alex314159/linopt-commons-math3"
   :license {:name "MIT"
