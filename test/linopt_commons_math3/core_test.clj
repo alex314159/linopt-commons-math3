@@ -115,12 +115,20 @@
 
 (deftest benchmark-relative-group-constraint-tests
   (let [bench [{:c "BR" :w 10.0} {:c "MX" :w 5.0} {:c "AR" :w 2.0}]
-        universe [{:c "BR"} {:c "MX"}]] ;; AR isn't investable
+        universe [{:c "BR"} {:c "MX"}] ;; AR isn't investable
+        group-key-fn (fn [item] (:c item))] ;; a real fn, not a literal map key
     (testing "only groups present in the investable universe are constrained"
-      (let [flat (constraints/benchmark-relative-group-constraint universe bench :w :c 1.0)
+      (let [flat (constraints/benchmark-relative-group-constraint universe bench :w group-key-fn 1.0)
             triplets (partition 3 flat)]
         (is (= 4 (count triplets))) ;; 2 groups x 2 (upper/lower) rows, flattened
-        (is (every? #(not= "AR" %) (map second triplets)))))))
+        (is (every? #(not= "AR" %) (map second triplets)))
+        ;; each group's coefficient vector must actually select ITS OWN items, not be
+        ;; all-zero — regression test for a bug where the group-key FN was passed where
+        ;; a literal map key was expected, silently zeroing every coefficient.
+        (is (every? (fn [[coll _ _]] (= 1.0 (reduce + 0.0 coll))) triplets))
+        (let [[br-le _ br-hi] (first triplets)]
+          (is (= [1.0 0.0] (vec br-le)))
+          (is (close? 11.0 br-hi)))))))
 
 (deftest benchmark-relative-average-constraint-tests
   (let [bench [{:dur 4.0 :w 60.0} {:dur 8.0 :w 40.0}] ;; weighted avg dur = 5.6

@@ -94,8 +94,10 @@
   (when ow-uw
     (let [bench-weights (benchmark-weights-by bench-coll weight-fn group-key-fn)]
       (vec (mapcat (fn [group]
-                     (let [bw (get bench-weights group 0.0)]
-                       (group-constraint universe-coll group-key-fn group [(- bw ow-uw) (+ bw ow-uw)])))
+                     (let [bw (get bench-weights group 0.0)
+                           coll (mapv #(if (= (group-key-fn %) group) 1.0 0.0) universe-coll)]
+                       [coll :<= (double (+ bw ow-uw))
+                        coll :>= (double (- bw ow-uw))]))
                    (distinct (map group-key-fn universe-coll)))))))
 
 (defn benchmark-relative-average-constraint
