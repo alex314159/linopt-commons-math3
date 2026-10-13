@@ -20,7 +20,7 @@ the candidate data comes from) stays in the app.
 ## Install
 
 ```clojure
-[net.clojars.alex314159/linopt-commons-math3 "0.1.1"]
+[net.clojars.alex314159/linopt-commons-math3 "0.1.2"]
 ```
 
 ## Namespaces
